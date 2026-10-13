@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Changed
+
+- qtrecurit 投递发码一篇改名 `send_group_qr_email.md` → `send-invite-email.md`。
+
 ## [0.0.1] - 2026-10-12
 
 初始版本。
