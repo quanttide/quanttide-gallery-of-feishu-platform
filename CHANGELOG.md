@@ -4,7 +4,9 @@
 
 ### Changed
 
-- qtrecurit 投递发码一篇改名 `send_group_qr_email.md` → `send-invite-email.md`。
+- qtrecurit 三篇文件名统一为连字符：`send-invite-email.md`（原 `send_group_qr_email.md`）、
+  `watch-group-entry.md`（原 `watch_group_entry.md`）、`send-survey-email.md`（原 `send_survey_email.md`）
+- `CONTRIBUTING.md` 命名规则由下划线改为连字符；`qtrecurit/index.md` 链接同步
 
 ## [0.0.1] - 2026-10-12
 
