@@ -60,9 +60,11 @@
 1. 认出投递：收件箱里新出现的投递，按发件人登记为待发码的候选人；结果＝同人重复投递只留一条，取最早日期。
 2. 备邀请链接：为候选人取一条群邀请链接；结果＝拿到一条可点的链接。
 3. 发邀请邮件：链接按手册话术写进正文发给候选人；结果＝邮件送达。
-4. 记状态：候选人由「投递」变为「二维码已发」；做法＝投递邮件标记已读，移入 HR 邮箱文件夹「已转交实训基地」（旧流程的「已邀请入群」）；结果＝状态更新、记下时间，收件箱不再留这封投递。
+4. 记状态：候选人由「投递」变为「二维码已发」；做法＝投递邮件标记已读，移入 HR 邮箱文件夹「已发送实训邀请」（旧流程的「已邀请入群」）；结果＝状态更新、记下时间，收件箱不再留这封投递。
 
 两条不论怎么实现都成立：任一步失败则本轮中止、候选人不前进；同一份流程定义，Python 与 Rust 两侧结果逐行相同。
+
+批量分轮跑：每轮固定人数（10 人），跑完一轮再跑下一轮，直到待发码清空；轮内候选人按投递日期从早到晚逐个走完四步，每封间隔 1-2 秒，每轮之间再停几秒，两层节流防并发写入冲突。群邀请链接每轮取一次、轮内复用，过期重取。循环只补三条规则——已发过邀请的跳过（归档文件夹查得到同人「量潮实训基地邀请」），姓名解析不出或缺邮箱的跳过进人工清单，单人任一步失败只记失败清单、状态不动、继续下一人。结束交一份报告：每人发送时间，附成功与失败清单。
 
 ### YAML 描述
 
@@ -98,7 +100,15 @@
           期待在基地见到你。
 
           量潮招聘
-    副作用: 标记已读，移入文件夹「已转交实训基地」，记发送时间
+    副作用: 标记已读，移入文件夹「已发送实训邀请」，记发送时间
+
+批量:
+  分轮: 每轮固定人数（10），多轮到清空；轮内逐人执行上面的迁移，投递日期最早优先
+  取链: 每轮取一次，轮内复用，过期重取
+  跳过: 已发过（归档文件夹查到同人邀请）、姓名解析不出、缺邮箱
+  失败: 记失败清单，状态不动，继续下一人
+  间隔: 每封 1-2 秒，每轮之间再停几秒
+  报告: 每人发送时间，成功与失败清单
 ```
 
 > 提示：范围里的「沟通面试中」「Spam」只用于补拉留档与人工核对，进人仍以收件箱为准。
@@ -116,17 +126,17 @@ MAILBOX=hr@quanttide.com
 CHAT_ID=$(lark-cli im +chat-search --query 实训基地 --as user --format json \
   | jq -r '.data.chats[] | select(.name=="量潮实训基地") | .chat_id')
 
-# 文件夹 id：记状态移入「已转交实训基地」要它，补拉留档与人工核对也用它；进人不依赖它
+# 文件夹 id：记状态移入「已发送实训邀请」要它，补拉留档与人工核对也用它；进人不依赖它
 lark-cli mail user_mailbox.folders list --user-mailbox-id "$MAILBOX" --format json
 ```
 
-管道本体（每个投递重复一遍）：
+管道本体（每个投递重复一遍；批量就是把下面四步套进循环）：
 
 ```bash
 # 1 认出投递：列收件箱摘要，发件人即候选人邮箱；不带 filter 即默认收件箱，与规格「仅收件箱进人」对齐
 lark-cli mail +triage --mailbox "$MAILBOX" --max 50 --format json
 
-# 2 取群邀请链接（外部群机器人身份取不到，得用 HR 用户身份）；链接非永久，过期后重发是常规动作
+# 2 取群邀请链接（外部群机器人身份取不到，得用 HR 用户身份）；链接非永久，过期后重发是常规动作；批量时此步每轮一次、轮内复用
 lark-cli im chats link --chat-id "$CHAT_ID" --as user --format json
 
 # 3 发邀请邮件：手册「邀请进群」话术，正文填姓名与链接；姓名从投递主题解析，
@@ -146,12 +156,29 @@ lark-cli mail +send --mailbox "$MAILBOX" --to "$候选人邮箱" \
 量潮招聘" \
   --confirm-send --as user
 
-# 4 记状态：投递邮件标记已读并移入「已转交实训基地」文件夹（旧流程叫「已邀请入群」），
+# 4 记状态：投递邮件标记已读并移入「已发送实训邀请」文件夹（旧流程叫「已邀请入群」），
 #    一条 modify 同时做两件事：remove_label_ids 摘掉 UNREAD 即已读，add_folder 即移入
 lark-cli mail user_mailbox.messages modify \
   --message-id "$投递message_id" --user-mailbox-id "$MAILBOX" \
-  --data '{"add_folder": "<已转交实训基地 folder_id>", "remove_label_ids": ["UNREAD"]}' \
+  --data '{"add_folder": "<已发送实训邀请 folder_id>", "remove_label_ids": ["UNREAD"]}' \
   --as user --format json
+```
+
+```bash
+# 批量：分轮跑，每轮固定人数（10），多轮到清空；取链每轮一次
+每轮人数=10
+split -l "$每轮人数" 待发码清单 轮次.   # 待发码清单按最早优先排序，每轮一个清单文件
+
+for 清单 in 轮次.*; do
+  邀请链接=$(lark-cli im chats link --chat-id "$CHAT_ID" --as user --format json | jq -r '.data.share_link')
+  while read -r 候选人邮箱 候选人姓名 投递message_id; do
+    # 跳过：已发过（按收件人+主题在「已发送实训邀请」查得到）、姓名解析不出、缺邮箱
+    # 1、3、4 同上（第 2 步用本轮链接）；任一步失败记入失败清单、continue，状态不动
+    sleep 1.5 # 每封间隔 1-2 秒，避开 Concurrent write conflict
+  done < "$清单"
+  sleep 5 # 轮与轮之间再停一下，进一步降写入频率
+done
+# 全部轮次结束交报告：每人发送时间 + 成功/失败清单
 ```
 
 发后核对，回读发件箱按主题匹配；不属于管道四步，不作推进条件：
@@ -160,7 +187,7 @@ lark-cli mail user_mailbox.messages modify \
 # 回读发件箱
 lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"SENT"}' --max 10 --format json
 
-# 也可按归档文件夹核对：先列文件夹拿 id，再按 id 读（记状态即归入「已转交实训基地」）
+# 也可按归档文件夹核对：先列文件夹拿 id，再按 id 读（记状态即归入「已发送实训邀请」）
 lark-cli mail user_mailbox.folders list --user-mailbox-id "$MAILBOX" --format json
 lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"<folder_id>"}' --max 100 --format json
 ```
