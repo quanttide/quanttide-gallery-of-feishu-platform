@@ -129,7 +129,8 @@ lark-cli mail +triage --mailbox "$MAILBOX" --max 50 --format json
 # 2 取群邀请链接（外部群机器人身份取不到，得用 HR 用户身份）；链接非永久，过期后重发是常规动作
 lark-cli im chats link --chat-id "$CHAT_ID" --as user --format json
 
-# 3 发邀请邮件：手册「邀请进群」话术，正文填姓名与链接；姓名从投递主题解析（如「产品运营-张三-某高校-6个月」）
+# 3 发邀请邮件：手册「邀请进群」话术，正文填姓名与链接；姓名从投递主题解析，
+#    主题格式为「岗位-姓名-学校-时长」，取第二段（如「产品运营-张三-某高校-6个月」→ 张三）
 lark-cli mail +send --mailbox "$MAILBOX" --to "$候选人邮箱" \
   --subject '量潮实训基地邀请' \
   --body "$候选人姓名你好，感谢你对量潮科技的关注与投递。经评估，诚邀你加入量潮实训基地。
@@ -149,7 +150,16 @@ lark-cli mail +send --mailbox "$MAILBOX" --to "$候选人邮箱" \
 发后核对，回读发件箱按主题匹配；不属于管道四步，不作推进条件：
 
 ```bash
+# 回读发件箱
 lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"SENT"}' --max 10 --format json
+
+# 也可按归档文件夹核对：先列文件夹拿 id，再按 id 读（旧流程把已发邀请归入专用文件夹）
+lark-cli mail user_mailbox.folders list --user-mailbox-id "$MAILBOX" --format json
+lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"<folder_id>"}' --max 100 --format json
 ```
+
+批量发送时 `lark-cli` 有并发写入限制，每封之间间隔 1-2 秒，否则报 Concurrent write conflict。
+
+投递缺邮箱的候选人（如通过飞书访客账号投递、未留邮箱）不满足前置条件 `email(c) 合法`，不进「待发码」；由人补邮箱后下一轮再发，或跳过单独处理。
 
 执行器把三条管道调用按流程串起来、管状态。案例执行结果：收件箱里的投递各收到一封带群邀请链接的邀请邮件，候选人由「投递」记为「二维码已发」。
