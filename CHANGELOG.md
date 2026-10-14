@@ -4,7 +4,8 @@
 
 ### Changed
 
-- `qtrecurit/index.md` 收敛为域介绍与两步意图（投递进收件箱 → 发实训邀请邮件、申请者点群邀请链接进群），撤下「流程」与「Pipeline 分解」导航
+- `qtrecurit/index.md` 升级流程：信息流 邮箱（申请）→ 群（沟通）→ 实训基地（初审）→ 公司（复审）
+- 记状态落为邮箱侧动作：投递邮件标记已读并移入「已转交实训基地」文件夹（旧流程的「已邀请入群」），一条 `mail user_mailbox.messages modify` 同时完成
 - `qtrecurit/send-invite-email.md` 按案例格式成文：需求（情境 / 难点）→ 意图（自然语言 / 形式化规则）→ 规格（自然语言 / YAML）→ 实现，与 quanttide-github 案例集 `second-brain/transfer-submodule-to-another.md` 同构
 - 投递发码入口由二维码附件改为群邀请链接：取链要用 HR 用户身份（外部群机器人身份取不到），链接非永久，过期后重发是常规动作
 - `qtrecurit/send-invite-email.md` 实现记为可复制的 `lark-cli` 命令序列，并补：投递主题按「岗位-姓名-学校-时长」取第二段解析姓名、发后核对按归档文件夹回读、批量发送每封间隔 1-2 秒避开 `Concurrent write conflict`、缺邮箱的投递不进「待发码」

@@ -60,7 +60,7 @@
 1. 认出投递：收件箱里新出现的投递，按发件人登记为待发码的候选人；结果＝同人重复投递只留一条，取最早日期。
 2. 备邀请链接：为候选人取一条群邀请链接；结果＝拿到一条可点的链接。
 3. 发邀请邮件：链接按手册话术写进正文发给候选人；结果＝邮件送达。
-4. 记状态：候选人由「投递」变为「二维码已发」；结果＝状态更新、记下时间。
+4. 记状态：候选人由「投递」变为「二维码已发」；做法＝投递邮件标记已读，移入 HR 邮箱文件夹「已转交实训基地」（旧流程的「已邀请入群」）；结果＝状态更新、记下时间，收件箱不再留这封投递。
 
 两条不论怎么实现都成立：任一步失败则本轮中止、候选人不前进；同一份流程定义，Python 与 Rust 两侧结果逐行相同。
 
@@ -98,14 +98,14 @@
           期待在基地见到你。
 
           量潮招聘
-    副作用: 记发送时间
+    副作用: 标记已读，移入文件夹「已转交实训基地」，记发送时间
 ```
 
 > 提示：范围里的「沟通面试中」「Spam」只用于补拉留档与人工核对，进人仍以收件箱为准。
 
 ## 实现
 
-管道本体是三条 `lark-cli` 调用——读收件箱、取群邀请链接、发邀请邮件；另有两件一次性准备，做一次即可。
+管道本体是四条 `lark-cli` 调用——读收件箱、取群邀请链接、发邀请邮件、记状态；另有两件一次性准备，做一次即可。
 
 一次性准备：
 
@@ -116,7 +116,7 @@ MAILBOX=hr@quanttide.com
 CHAT_ID=$(lark-cli im +chat-search --query 实训基地 --as user --format json \
   | jq -r '.data.chats[] | select(.name=="量潮实训基地") | .chat_id')
 
-# 文件夹 id：补拉留档与人工核对时才用到，进人不依赖它
+# 文件夹 id：记状态移入「已转交实训基地」要它，补拉留档与人工核对也用它；进人不依赖它
 lark-cli mail user_mailbox.folders list --user-mailbox-id "$MAILBOX" --format json
 ```
 
@@ -145,6 +145,13 @@ lark-cli mail +send --mailbox "$MAILBOX" --to "$候选人邮箱" \
 
 量潮招聘" \
   --confirm-send --as user
+
+# 4 记状态：投递邮件标记已读并移入「已转交实训基地」文件夹（旧流程叫「已邀请入群」），
+#    一条 modify 同时做两件事：remove_label_ids 摘掉 UNREAD 即已读，add_folder 即移入
+lark-cli mail user_mailbox.messages modify \
+  --message-id "$投递message_id" --user-mailbox-id "$MAILBOX" \
+  --data '{"add_folder": "<已转交实训基地 folder_id>", "remove_label_ids": ["UNREAD"]}' \
+  --as user --format json
 ```
 
 发后核对，回读发件箱按主题匹配；不属于管道四步，不作推进条件：
@@ -153,7 +160,7 @@ lark-cli mail +send --mailbox "$MAILBOX" --to "$候选人邮箱" \
 # 回读发件箱
 lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"SENT"}' --max 10 --format json
 
-# 也可按归档文件夹核对：先列文件夹拿 id，再按 id 读（旧流程把已发邀请归入专用文件夹）
+# 也可按归档文件夹核对：先列文件夹拿 id，再按 id 读（记状态即归入「已转交实训基地」）
 lark-cli mail user_mailbox.folders list --user-mailbox-id "$MAILBOX" --format json
 lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"<folder_id>"}' --max 100 --format json
 ```
@@ -162,4 +169,4 @@ lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"<folder_id>"}' -
 
 投递缺邮箱的候选人（如通过飞书访客账号投递、未留邮箱）不满足前置条件 `email(c) 合法`，不进「待发码」；由人补邮箱后下一轮再发，或跳过单独处理。
 
-执行器把三条管道调用按流程串起来、管状态。案例执行结果：收件箱里的投递各收到一封带群邀请链接的邀请邮件，候选人由「投递」记为「二维码已发」。
+执行器把四条管道调用按流程串起来、管状态。案例执行结果：收件箱里的投递各收到一封带群邀请链接的邀请邮件，候选人由「投递」记为「二维码已发」。
