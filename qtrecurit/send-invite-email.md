@@ -98,22 +98,23 @@
 
 ## 实现
 
-按上述规格落地的执行器与能力层。契约与实现分开放：执行器只认流程词汇（文件夹、候选人邮箱），平台词汇（folder id、命令行参数）只活在能力实现里。
-
-```rust
-// 能力契约：四个能力，参数与返回都是普通数据，不给调用方任何平台概念
-pub trait MailAdapter {
-    fn read_mail(&self, folder: &str) -> Vec<Mail>;          // 读某文件夹的邮件
-    fn read_group_members(&self) -> Vec<String>;             // 本实例群的成员邮箱
-    fn chat_link(&self) -> Result<String, String>;           // 群邀请链接（lark-cli im chats link）
-    fn send_mail(&self, to: &str, subject: &str, body: &str, attachments: &[String])
-        -> Result<String, String>;                           // 发信，返回 message_id
-}
-```
+把这条管道拆到最原始，就是三条 `lark-cli` 调用——读收件箱、取群邀请链接、发邀请邮件：
 
 ```bash
-# 走 mock，零外部 IO：重建 → 推一轮 → 落盘（在 src/cli 下）
-cargo run --example qtrecurit
+MAILBOX=hr@quanttide.com
+CHAT_ID=oc_实训基地群                  # 「量潮实训基地」群
+
+# 1 认出投递：列收件箱摘要，发件人即候选人邮箱
+lark-cli mail +triage --mailbox "$MAILBOX" --filter '{"folder":"收件箱"}' --format json
+
+# 2 取群邀请链接（外部群机器人身份取不到，得用 HR 用户身份）
+lark-cli im chats link --chat-id "$CHAT_ID" --as user --format json
+
+# 3 发邀请邮件：链接填进正文，另附群二维码
+lark-cli mail +send --mailbox "$MAILBOX" --to "$候选人邮箱" \
+  --subject '量潮实训基地 · 群二维码' \
+  --body '你好，扫码直接进群（群二维码见附件）。也可以点这个链接进群：{{邀请链接}}' \
+  --attach 群二维码.png --confirm-send --as user
 ```
 
-案例执行结果：收件箱里的投递各由「投递」推到「二维码已发」，正文带上群邀请链接、附件带 `群二维码.png`，`message_id` 与 Python 实验室逐行一致；向 `send_mail` 注入失败，则整轮报错、状态与轨迹都不动（不变式 I3 成立）。
+每个候选人重复第 3 步；执行器把这三步按流程串起来、管状态。案例执行结果：收件箱里的投递各收到一封带邀请链接与群二维码的邮件，候选人由「投递」记为「二维码已发」。
