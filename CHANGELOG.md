@@ -4,6 +4,7 @@
 
 ### Changed
 
+- `qtrecurit/send-invite-email.md` 按案例格式重写：需求（情境 / 难点）→ 意图（规则 / 形式化）→ 规格（自然语言 / YAML）→ 实现，与 quanttide-github 案例集 `second-brain/transfer-submodule-to-another.md` 同构
 - qtrecurit 三篇文件名统一为连字符：`send-invite-email.md`（原 `send_group_qr_email.md`）、
   `watch-group-entry.md`（原 `watch_group_entry.md`）、`send-survey-email.md`（原 `send_survey_email.md`）
 - `CONTRIBUTING.md` 命名规则由下划线改为连字符；`qtrecurit/index.md` 链接同步
