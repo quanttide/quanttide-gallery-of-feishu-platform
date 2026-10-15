@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [Unreleased]
+
+### Added
+
+- 新增 `qtadmin/` 域：`index.md` 与 `delib.md`——内部管理周会议事案例（主持人与书记员分工、会前准备、会中议事与投票、纪要区块结构、大群播报格式、检查清单），人名、客户与治理决策已类型化脱敏
+
+### Changed
+
+- `CONTRIBUTING.md`：文件模型由「自动化流水线」放宽为「业务流程」，人主导的议事流程可单独成文
+- `qtrecurit/send-invite-email.md`：投递主题示例改用虚构姓名与高校（张三 / 某高校），并以 `git filter-repo` 清理历史中的真实信息
+
 ## [0.1.0] - 2026-10-14
 
 ### Changed
