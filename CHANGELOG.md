@@ -1,15 +1,18 @@
 # CHANGELOG
 
-## [Unreleased]
+## [0.1.1] - 2026-10-19
 
 ### Added
 
-- 新增 `qtadmin/` 域：`index.md` 与 `delib.md`——内部管理周会议事案例（主持人与书记员分工、会前准备、会中议事与投票、纪要区块结构、全员群播报格式、检查清单），人名、客户与治理决策已类型化脱敏
+- 新增 `qtadmin/` 域：`index.md` 与 `delib/hold-weekly-meeting.md`——内部管理周会议事案例（主持人与书记员分工、会前准备、会中议事与投票、纪要区块结构、全员群播报格式、检查清单），人名、客户与治理决策已类型化脱敏
+- 新增 `qtadmin/pay/record-voucher.md`——代金券发放记录案例：取数与筛选口径、发放消息判定、记录字段与编号、出群脱敏步骤与检查清单，按需求、意图、规格、实现四段成文
 
 ### Changed
 
-- `CONTRIBUTING.md`：文件模型由「自动化流水线」放宽为「业务流程」，人主导的议事流程可单独成文
-- `qtrecurit/send-invite-email.md`：投递主题示例改用虚构姓名与高校（张三 / 某高校），并以 `git filter-repo` 清理历史中的真实信息
+- `CONTRIBUTING.md`：文件模型由「自动化流水线」放宽为「业务流程」，人主导的议事流程可单独成文；域示例随目录归位同步
+- 邀请案例：投递主题示例改用虚构姓名与高校（张三 / 某高校），并以 `git filter-repo` 清理历史中的真实信息；标题改为「批量发送实训基地入群邀请」，状态「二维码已发」改名「邀请已发」
+- 周会议事案例按格式章程整理：纪要结构改有序列表、播报示例列清单、群名更新为量潮科技全员群
+- 目录按域归位：`qtrecurit/` 整域迁入 `qtadmin/human/`，周会议事落 `qtadmin/delib/hold-weekly-meeting.md`，代金券记录落 `qtadmin/pay/record-voucher.md`，`qtadmin/index.md` 导航同步
 
 ## [0.1.0] - 2026-10-14
 
